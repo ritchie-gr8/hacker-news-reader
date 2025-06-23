@@ -1,103 +1,128 @@
-import Image from "next/image";
+"use client";
+
+import { StoryCard } from "@/components/story-card";
+import { getStoryById, getTopStoryIds } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { StoryListSkeleton } from "@/components/story-skeletion";
+import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { Suspense } from "react";
+import Navbar from "@/components/navbar";
+
+async function fetchStories(page: number) {
+  const offset = (page - 1) * ITEMS_PER_PAGE;
+  const topStoryIds = await getTopStoryIds(offset, ITEMS_PER_PAGE);
+  const stories = await Promise.all(
+    topStoryIds.ids.map((id) => getStoryById(id).catch(() => null))
+  );
+  return {
+    stories,
+    hasMore: topStoryIds.hasMore,
+  };
+}
+
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const page = Number(searchParams.get("page")) || 1;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["stories", page],
+    queryFn: () => fetchStories(page),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const currentHomePath = `/?${searchParams.toString()}`;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+      <Navbar page={page} />
+
+      <main className="container mx-auto px-4 py-8">
+        {isLoading ? (
+          <StoryListSkeleton />
+        ) : isError ? (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 text-center">
+            <h3 className="text-xl font-medium text-red-800 dark:text-red-200 mb-2">
+              Failed to load stories
+            </h3>
+            <p className="text-red-600 dark:text-red-300 mb-4">
+              Please try again later
+            </p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {data?.stories.map(
+              (story, index) =>
+                story && (
+                  <div
+                    key={story.id}
+                    className="transition-all hover:scale-[1.005]"
+                  >
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 mr-0 sm:mr-4 mt-1">
+                        <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium">
+                          {index + 1 + (page - 1) * ITEMS_PER_PAGE}
+                        </div>
+                      </div>
+                      <StoryCard story={story} returnTo={currentHomePath} />
+                    </div>
+                  </div>
+                )
+            )}
+          </div>
+        )}
+      </main>
+
+      <footer className="container mx-auto px-4 pb-4 sm:py-8">
+        <div className="flex flex-row justify-center sm:justify-between items-center gap-4">
+          <Button
+            disabled={page <= 1}
+            onClick={() => router.push(`/?page=${page - 1}`)}
+            className="cursor-pointer flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Previous Page</span>
+          </Button>
+
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Page {page}
+          </div>
+
+          <Button
+            disabled={!data?.hasMore}
+            onClick={() => router.push(`/?page=${page + 1}`)}
+            className="cursor-pointer flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="hidden sm:inline">Next Page</span>
+            <ArrowRight size={16} />
+          </Button>
+        </div>
+      </footer>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+          <Navbar page={1} />
+          <StoryListSkeleton />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }
