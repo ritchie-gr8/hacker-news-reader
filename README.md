@@ -2,6 +2,9 @@
 
 A simple Hacker News reader built with TypeScript, Next.js, React Query and Tailwind CSS.
 
+![Demo](https://res.cloudinary.com/dhyyl3snm/image/upload/v1750678885/Screenshot_2025-06-23_184112_agnt43.png)
+[Live Demo](https://hacker-news-reader-hazel.vercel.app/)
+
 # Features
 
 - Fetches and displays the top 10 Hacker News stories per page, including title, author, score, and number of comments.
