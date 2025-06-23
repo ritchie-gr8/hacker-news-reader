@@ -2,8 +2,8 @@
 
 A simple Hacker News reader built with TypeScript, Next.js, React Query and Tailwind CSS.
 
-![Demo](https://res.cloudinary.com/dhyyl3snm/image/upload/v1750678885/Screenshot_2025-06-23_184112_agnt43.png)
 [Live Demo](https://hacker-news-reader-hazel.vercel.app/)
+![Demo](https://res.cloudinary.com/dhyyl3snm/image/upload/v1750678885/Screenshot_2025-06-23_184112_agnt43.png)
 
 # Features
 
